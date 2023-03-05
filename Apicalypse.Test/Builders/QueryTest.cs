@@ -1,0 +1,75 @@
+﻿using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Net;
+using Newtonsoft.Json;
+using Apicalypse.NamingPolicies;
+
+namespace Apicalypse.Test.Builders;
+public enum Test
+{
+    a, b
+}
+public class Game
+{
+    public string Name { get; set; }
+    public string Slug { get; set; }
+    public uint Follows { get; set; }
+    public double Score { get; set; }
+    public DateTime ReleaseDate { get; set; }
+    public Test Test { get; set; }
+}
+
+public class QueryTest
+{
+    [SetUp]
+    public void Setup()
+    {
+
+    }
+
+    [Test]
+    public async Task TestSelect()
+    {
+        var builder = new QueryBuilder<Game>(new Configuration.QueryBuilderOptions { NamingPolicy = NamingPolicy.SnakeCase});
+
+        Expression<Func<Game, object>> predicate = g => g.Name;
+        Expression<Func<Game, object>> predicate2 = g => g.Follows;
+
+        var b = builder
+            .Select(o => new
+            { // the list of fields to gather
+                o.Name,
+                o.Slug
+            })
+            .Where( // conditions
+                o => o.Follows > 3
+                && o.Follows < 10
+            )
+            .OrderByDescending(   // Descending sort orer
+                o => o.ReleaseDate
+            )
+            .Take(8) // limit to 8 results
+            .Skip(0).Build(); // gather results after the third one
+        var body = new StringContent(b);
+        var httpClient = new HttpClient();
+        var httpRequestMessage = new HttpRequestMessage
+        {
+            Method = HttpMethod.Post,
+            RequestUri = new Uri("https://api.igdb.com/v4/games"),
+            Headers = {
+                { "Authorization", "Bearer gxevr0oqg3blg70ajxxo3xzyw7byi4" },
+                { "Client-ID", "4fkki7x67mrp71i49qcau3o2r47yi1" },
+            },
+            Content = body
+        };
+
+        var response = await httpClient.SendAsync(httpRequestMessage);
+        var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+    }
+}
