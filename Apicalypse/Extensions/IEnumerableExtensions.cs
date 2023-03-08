@@ -25,5 +25,10 @@ namespace Apicalypse.Extensions
 
             return true;
         }
+
+        public static bool IsAnyIn<T>(this IEnumerable<T> source, IEnumerable<T> value)
+        {
+            return source.Any(sourceValue => value.Contains(sourceValue));
+        }
     }
 }
