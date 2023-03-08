@@ -7,4 +7,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Apicalypse.Test\Apicalypse.Test.csproj" />
+    <ProjectReference Include="..\Apicalypse\Apicalypse.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -3,9 +3,11 @@ using Apicalypse.Exceptions;
 using Apicalypse.Extensions;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 
 namespace Apicalypse.Interpreters
@@ -61,7 +63,7 @@ namespace Apicalypse.Interpreters
                  * then return an interpretation.
                  */
                 case ExpressionType.MemberAccess:
-                    return ComputeMemberAccess(predicate, options);
+                    return ComputeMemberAccess(predicate, options, arrayPostfixMode);
                 case ExpressionType.Constant:
                     return ComputeConstant(predicate, options);
                 case ExpressionType.NewArrayInit:
@@ -75,13 +77,56 @@ namespace Apicalypse.Interpreters
                     return ComputeNotCall(predicate, options);
                 case ExpressionType.Call:
                     return ComputeMethodCall(predicate, options, invert);
+                /*
+                 * Fourth part of switch : convert
+                 * -------
+                 * if node type corresponding to 
+                 */
+                case ExpressionType.Convert:
+                    return ComputeConvert(predicate, options);
                 default:
                     throw new InvalidPredicateException(predicate);
             }
         }
 
-        private static string ComputeMemberAccess(Expression predicate,  QueryBuilderOptions options)
+        private static string ComputeConvert(Expression predicate, QueryBuilderOptions options)
         {
+            return Run((predicate as UnaryExpression).Operand, options);
+        }
+
+        private static string ComputeMemberAccess(Expression predicate,  QueryBuilderOptions options, ArrayPostfixMode arrayPostfixMode)
+        {
+            var memberExpression = (MemberExpression)predicate;
+            if (memberExpression.Member.MemberType == MemberTypes.Field)
+            {
+                var container = ((memberExpression.Expression as ConstantExpression));
+                if(container == null)
+                {
+                    return FieldInterpreter.Run(memberExpression.Member.Name, options);
+                }
+
+                var member = memberExpression.Member;
+
+                var value = ((FieldInfo)member).GetValue(container.Value);
+                var valueType = value.GetType();
+
+                if (valueType.IsArray)
+                {
+                    var arrayItemType = valueType.GetElementType();
+                    var array = value as Array;
+
+                    var expressionArray = new List<Expression>();
+                    foreach (var item in array)
+                    {
+                        expressionArray.Add(Expression.Constant(item, arrayItemType));
+                    }
+
+                    return Run(Expression.NewArrayInit(arrayItemType, expressionArray), options, arrayPostfixMode: arrayPostfixMode);
+                }
+                
+                return Run(Expression.Constant(value), options);
+            }
+
             return MemberPredicateInterpreter.Run(predicate, options);
         }
 
@@ -107,7 +152,7 @@ namespace Apicalypse.Interpreters
 
             return value.ToString();
         }
-
+       
         private static string ComputeArray(Expression array, ArrayPostfixMode arrayPostfixMode,  QueryBuilderOptions options)
         {
             var list = string.Join(
@@ -145,7 +190,7 @@ namespace Apicalypse.Interpreters
             if (
                 method.Object is null
                 && method.Arguments.Count() >= 1
-                && method.Arguments[0].NodeType == ExpressionType.NewArrayInit
+                && (method.Arguments[0].NodeType == ExpressionType.NewArrayInit || method.Arguments[0].Type.IsArray)
                 ||
                 method.Object != null
                 && method.Object.NodeType == ExpressionType.NewArrayInit
@@ -173,6 +218,10 @@ namespace Apicalypse.Interpreters
                 case nameof(Enumerable.Equals):
                     left = Run(method.Arguments[0], options);
                     right = Run(method.Object, options, arrayPostfixMode: ArrayPostfixMode.ExactMatch);
+                    break;
+                case nameof(IEnumerableExtensions.IsAnyIn):
+                    left = Run(method.Arguments[1], options);
+                    right = Run(method.Arguments[0], options, arrayPostfixMode: ArrayPostfixMode.ContainsAny);
                     break;
                 default:
                     throw new NotImplementedException($"Array method {method.Method.Name} is not implemented");

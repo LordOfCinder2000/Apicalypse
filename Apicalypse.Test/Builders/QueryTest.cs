@@ -9,6 +9,9 @@ using System.Threading;
 using System.Net;
 using Newtonsoft.Json;
 using Apicalypse.NamingPolicies;
+using Apicalypse.Configuration;
+using System.Linq;
+using Apicalypse.Extensions;
 
 namespace Apicalypse.Test.Builders;
 public enum Test
@@ -19,10 +22,11 @@ public class Game
 {
     public string Name { get; set; }
     public string Slug { get; set; }
-    public uint Follows { get; set; }
+    public uint Follows;
     public double Score { get; set; }
     public DateTime ReleaseDate { get; set; }
     public Test Test { get; set; }
+    public List<int> Tags { get; set; }
 }
 
 public class QueryTest
@@ -32,14 +36,38 @@ public class QueryTest
     {
 
     }
+    class Test
+    {
+        public int[] Tags { get; set; }
+    }
 
     [Test]
     public async Task TestSelect()
     {
-        var builder = new QueryBuilder<Game>(new Configuration.QueryBuilderOptions { NamingPolicy = NamingPolicy.SnakeCase});
+        var builder = new QueryBuilder<Game>(new QueryBuilderOptions { NamingPolicy = NamingPolicy.SnakeCase});
 
         Expression<Func<Game, object>> predicate = g => g.Name;
         Expression<Func<Game, object>> predicate2 = g => g.Follows;
+
+        var source = new int[] { 1, 2, 3 };
+        var source2 = new int[] { 2, 3, 5 };
+        var target = new int[] { 5 };
+
+
+        var test = new Test();
+        test.Tags = source;
+
+        var test2 = new Test();
+        test2.Tags = source2;
+
+        var tests = new List<Test> { test, test2 };
+
+        var rs = tests.Where(t => target.Any(i => t.Tags.Contains(i))).ToList();
+
+        //var str0 = new QueryBuilder<Game>().Select<Game>().Where(g => g.Tags.Contains(9)).Build();
+        var number = new int[] { 1 };
+        var temp = 1;
+        var str = new QueryBuilder<Game>().Select<Game>().Where(g => g.Follows == 1 && g.Follows < 1).Build();
 
         var b = builder
             .Select(o => new
