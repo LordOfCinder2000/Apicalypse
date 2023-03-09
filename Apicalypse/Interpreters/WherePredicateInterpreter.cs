@@ -157,7 +157,15 @@ namespace Apicalypse.Interpreters
         {
             var list = string.Join(
                 ",",
-                (array as NewArrayExpression).Expressions.Select(e => Run(e as ConstantExpression, options))
+                (array as NewArrayExpression).Expressions.Select(e =>
+                {
+                    if(e.NodeType == ExpressionType.MemberAccess)
+                    {
+                        return ComputeMemberAccess(e, options, arrayPostfixMode);
+                    }
+
+                    return Run(e as ConstantExpression, options);
+                })
             );
 
             switch (arrayPostfixMode)
