@@ -1,5 +1,6 @@
 ﻿using Apicalypse.Configuration;
 using Apicalypse.Interpreters;
+using Apicalypse.NamingPolicies;
 using System;
 using System.Linq.Expressions;
 
@@ -22,7 +23,7 @@ namespace Apicalypse
         private int skip;
 
         public QueryBuilder()
-            : this(new QueryBuilderOptions { NamingPolicy = null })
+            : this(new QueryBuilderOptions { NamingPolicy = NamingPolicy.SnakeCase })
         {
         }
 
