@@ -102,7 +102,7 @@ namespace Apicalypse.Interpreters
                 var container = ((memberExpression.Expression as ConstantExpression));
                 if(container == null)
                 {
-                    return FieldInterpreter.Run(memberExpression.Member.Name, options);
+                    return FieldInterpreter.Run(memberExpression.Member, options);
                 }
 
                 var member = memberExpression.Member;

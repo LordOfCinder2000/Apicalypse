@@ -58,7 +58,7 @@ namespace Apicalypse.Interpreters
             if (predicate.Expression != null && predicate.Expression is MemberExpression)
                 path = UnrollMemberPath(predicate.Expression as MemberExpression, options) + ".";
 
-            return path + FieldInterpreter.Run(predicate.Member.Name, options);
+            return path + FieldInterpreter.Run(predicate.Member, options);
         }
     }
 }

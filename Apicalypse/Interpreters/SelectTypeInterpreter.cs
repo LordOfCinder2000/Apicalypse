@@ -2,6 +2,7 @@
 using Apicalypse.Configuration;
 using Apicalypse.Extensions;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -37,10 +38,11 @@ namespace Apicalypse.Interpreters
         private static string GetFields(PropertyInfo property, QueryBuilderOptions options, string parentPath = "")
         {
             var fields = new List<string>();
-            var path = parentPath + FieldInterpreter.Run(property.Name, options);
+            var path = parentPath + FieldInterpreter.Run(property, options);
             if (property.GetCustomAttribute<IncludeAttribute>() != null)
             {
-                foreach(var p in property.PropertyType.GetProperties())
+                var propertyType = GetPropertyType(property);
+                foreach (var p in propertyType.GetProperties())
                 {
                     fields.Add(GetFields(p, options, path + "."));
                 }
@@ -51,6 +53,22 @@ namespace Apicalypse.Interpreters
             }
 
             return string.Join(",", fields);
+        }
+
+        private static Type GetPropertyType(PropertyInfo property)
+        {
+            var propertyType = property.PropertyType;
+            if (propertyType.IsArray)
+            {
+                return propertyType.GetElementType();
+            }
+
+            if (propertyType.IsGenericType && typeof(IEnumerable).IsAssignableFrom(propertyType))
+            {
+                return propertyType.GetGenericArguments()[0];
+            }
+
+            return propertyType;
         }
     }
 }

@@ -1,6 +1,9 @@
-﻿using Apicalypse.Configuration;
+﻿using Apicalypse.Attributes;
+using Apicalypse.Configuration;
 using Apicalypse.Extensions;
 using Apicalypse.NamingPolicies;
+using System.ComponentModel;
+using System.Reflection;
 
 namespace Apicalypse.Interpreters
 {
@@ -15,8 +18,15 @@ namespace Apicalypse.Interpreters
         /// <param name="fieldName"></param>
         /// <param name="options"></param>
         /// <returns></returns>
-        public static string Run(string fieldName, QueryBuilderOptions options)
+        public static string Run(MemberInfo memberInfo, QueryBuilderOptions options)
         {
+            var fieldName = memberInfo.Name;
+            var displayName = memberInfo.GetCustomAttribute<DisplayNameAttribute>();
+            if (displayName != null)
+            {
+                fieldName = displayName.DisplayName;
+            }
+
             if (options.NamingPolicy is null)
             {
                 return fieldName;

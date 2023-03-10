@@ -37,6 +37,15 @@ namespace Apicalypse
             this.options = options;
         }
 
+        public QueryBuilder<TSource> Select()
+        {
+            if (!string.IsNullOrEmpty(excludes))
+                throw new InvalidOperationException("Can't combine Exclude and Select methods.");
+
+            selects = SelectTypeInterpreter.Run<TSource>(options);
+
+            return this;
+        }
 
         /// <summary>
         /// Sets the list of fields to gather from the API model with the public
